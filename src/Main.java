@@ -1,45 +1,39 @@
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class Main {
-    /**
-     * @param args the command line arguments
-     */
+
     public static void main(String[] args) {
-	// write your code here
-        if(args[0].startsWith("server")) {
+        // Argument order: start_node {ip} {port} {store_name}
+        if (args[0].equals("start_node")) {
             try {
-
-                Server serer = new Server();
-                serer.start(new Integer(args[1]), args[2]);
-
+                String ipAddress = args[1];
+                Integer port = new Integer(args[2]);
+                String storeName = args[3];
+                Node node = new Node(storeName, ipAddress, port);
+                node.listen();
             } catch (IOException ex) {
-                System.out.println("error server");
-                ex.printStackTrace();
-                for (String s : args) {
-                    System.out.println(s);
+                System.out.println("Error initializing node.");
+                System.out.println("Received args: ");
+                for (String arg : args) {
+                    System.out.println(arg);
                 }
-                //Logger.getLogger(Taller1sd.class.getName()).log(Level.SEVERE, null, ex);
+                ex.printStackTrace();
             }
-        }else {
+        } else {
             try {
-                //participante
-
-                ClientMessage message = new ClientMessage();
-                message.startConnection(args[1], new Integer(args[2]));
-
-                String response = message.sendMessage(args[3]);
-
+                // Argument order: send_message {ip} {port} {message}
+                // For example: send_message 192.168.1.57 9000 register_node$Tienda2$192.168.1.57$9500
+                String serverIp = args[1];
+                Integer serverPort = new Integer(args[2]);
+                NetworkIdentifier target = new NetworkIdentifier(serverIp, serverPort);
+                NetworkMessage message = new NetworkMessage(target, args[3]);
+                String response = message.send();
                 System.out.println("Respuesta server: " + response);
-
+                message.dispose();
             } catch (IOException ex) {
+                // TODO: Mensaje de error mas descriptivo
                 System.out.println("error client message");
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
-
-
-
         }
     }
 }
