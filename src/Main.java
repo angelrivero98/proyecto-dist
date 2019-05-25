@@ -1,64 +1,83 @@
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.MutuallyExclusiveGroup;
+import net.sourceforge.argparse4j.inf.Namespace;
+
 import java.io.IOException;
 
 public class Main {
 
-    public static void main(String[] args) {
-        // Argument order: start_node {ip} {port} {store_name}
-        if (args[0].equals("start_node")) {
-            try {
-                String ipAddress = args[1];
-                Integer port = new Integer(args[2]);
-                String storeName = args[3];
-                Node node = new Node(storeName, ipAddress, port);
-                node.listen();
-            } catch (IOException ex) {
-                System.out.println("Error initializing node.");
-                System.out.println("Received args: ");
-                for (String arg : args) {
-                    System.out.println(arg);
-                }
-                ex.printStackTrace();
-            }
-        } else {
-            try {
-                // Argument order: send_message {ip} {port} {message}
-                // Examples:
-                // Register node: send_message 192.168.1.57 9000 register_node$Tienda2$192.168.1.57$9500
-                // List products: send_message 192.168.1.57 9000 list_company_products$
-                // List products by store: send_message 192.168.1.57 9000 list_store_products$
-                String serverIp = args[1];
-                Integer serverPort = new Integer(args[2]);
-                NetworkIdentifier target = new NetworkIdentifier(serverIp, serverPort);
-                NetworkMessage message = new NetworkMessage(target, args[3]);
-                String response = message.send();
-                System.out.println("Respuesta server: " + response);
-                try {
-                    String[] split = response.split("\\$");
-                    String serverInstruction = split[0];
-                    if (serverInstruction.equals(Instructions.LIST_PRODUCTS_BY_COMPANY)) {
-                        System.out.println("Productos de compañia");
-                        System.out.println(String.format("| %10s | %10s |", "Codigo", "Cantidad"));
-                        String[] serializedProducts = split[1].split(",");
-                        for (String serializedProduct : serializedProducts) {
-                            String[] components = serializedProduct.split("#");
-                            System.out.println(String.format("| %10s | %10s |", components[0], components[1]));
-                        }
-                    } else if (serverInstruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)){
-                        System.out.println("Productos de compañia por tienda");
-                        String[] serializedProducts = split[1].split(",");
-                        for (String serializedProduct : serializedProducts) {
-                            System.out.println(serializedProduct);
-                        }
-                    }
-                } catch (IndexOutOfBoundsException e) {
-                    System.out.println("No hay instruccion del servidor, terminamos.");
-                }
+    public static void main(String[] args) throws ArgumentParserException {
+        ArgumentParser parser = ArgumentParsers.newFor("Proyecto 1 - Sist. Distribuidos")
+                .fromFilePrefix("@").build();
 
-                message.dispose();
-            } catch (IOException ex) {
-                // TODO: Mensaje de error mas descriptivo
-                System.out.println("error client message");
+        MutuallyExclusiveGroup group = parser.addMutuallyExclusiveGroup().required(true);
+        group.addArgument("-s", "--server").action(Arguments.storeTrue());
+        group.addArgument("-m", "--message").action(Arguments.storeTrue());
+
+        parser.addArgument("-n", "--name").dest("storeName").type(String.class);
+        parser.addArgument("-i", "--ip").dest("ip").required(true).type(String.class);
+        parser.addArgument("-p", "--port").dest("port").required(true).type(Integer.class);
+        parser.addArgument("-c", "--content").dest("content").type(String.class);
+        try {
+            Namespace ns = parser.parseArgs(args);
+            System.out.println(ns);
+            if (ns.getBoolean("server")) {
+                try {
+                    Node node = new Node(
+                            ns.getString("storeName"),
+                            ns.getString("ip"),
+                            ns.getInt("port")
+                    );
+                    node.listen();
+                } catch (IOException e) {
+                    System.out.println("Error initializing node.");
+                }
+            } else if (ns.getBoolean("message")) {
+                try {
+                    NetworkMessage message = new NetworkMessage(
+                            new NetworkIdentifier(ns.getString("ip"), ns.getInt("port")),
+                            ns.getString("content")
+                    );
+                    String response = message.send();
+                    message.dispose();
+                    System.out.println("Respuesta server: " + response);
+                    processServerMessage(response);
+                } catch (IOException e) {
+                    System.out.println("Error enviando mensaje");
+                }
             }
+
+        } catch (ArgumentParserException e) {
+            parser.handleError(e);
+        }
+    }
+
+    private static void processServerMessage(String message) {
+        try {
+            String[] split = message.split("\\$");
+            String serverInstruction = split[0];
+            if (serverInstruction.equals(Instructions.LIST_PRODUCTS_BY_COMPANY)) {
+                System.out.println("Productos de compañia");
+                System.out.println(String.format("| %10s | %10s |", "Codigo", "Cantidad"));
+                String[] serializedProducts = split[1].split(",");
+                for (String serializedProduct : serializedProducts) {
+                    String[] components = serializedProduct.split("#");
+                    System.out.println(String.format("| %10s | %10s |", components[0], components[1]));
+                }
+            } else if (serverInstruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)) {
+                System.out.println("Productos de compañia por tienda");
+                System.out.println(String.format("| %15s | %10s | %10s |", "Tienda", "Codigo", "Cantidad"));
+                String[] serializedProducts = split[1].split(",");
+                for (String serializedProduct : serializedProducts) {
+                    String[] components = serializedProduct.split("#");
+                    System.out.println(String.format("| %15s | %10s | %10s |", components[0], components[1], components[2]));
+                }
+            }
+        } catch (IndexOutOfBoundsException e) {
+            System.out.println("No hay instruccion del servidor, terminamos.");
         }
     }
 }

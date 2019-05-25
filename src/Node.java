@@ -4,7 +4,11 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Node {
     private NetworkIdentifier networkIdentifier;
@@ -17,22 +21,15 @@ public class Node {
 
     public Node(String storeName, String ip, int port) throws IOException {
         store = new Store(storeName);
+        products = new ArrayList<>();
         listeningSocket = new ServerSocket(port);
         networkIdentifier = new NetworkIdentifier(ip, port);
         knownStores.put(storeName, networkIdentifier);
     }
 
     public void listen() {
-        if (initialListening) {
-            System.out.println(
-                    String.format("Tienda %s escuchando en %s:%d",
-                            store.getName(),
-                            networkIdentifier.ipAddress,
-                            networkIdentifier.port)
-            );
-            this.products = new ArrayList<>();
-            initialListening = false;
-        }
+        for (int i = 0; i < 50; ++i) System.out.println();
+        printStatus();
         try {
             Socket clientSocket = listeningSocket.accept();
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -234,5 +231,30 @@ public class Node {
             }
         }
         return resultBuilder.toString();
+    }
+
+    private void printStatus() {
+        System.out.println(store.getName() + " - Known nodes");
+        System.out.println("---------------------------------------------");
+        System.out.println(String.format("| %15s | %15s | %5s |", "Name", "IP Address", "Port"));
+        for (Map.Entry<String, NetworkIdentifier> node : knownStores.entrySet()) {
+            System.out.println(String.format("| %15s | %15s | %5d |",
+                    node.getKey(),
+                    node.getValue().ipAddress,
+                    node.getValue().port));
+        }
+        System.out.println("---------------------------------------------");
+        System.out.println();
+        System.out.println("Inventario");
+        System.out.println("-------------------------------------------------------");
+        System.out.println(String.format("| %15s | %15s | %15s |", "Codigo", "Tienda", "Quantity"));
+        for (Product p : products) {
+            System.out.println(String.format("| %15s | %15s | %15d |",
+                    p.getCode(),
+                    p.getStore(),
+                    p.getAmount())
+            );
+        }
+        System.out.println("-------------------------------------------------------");
     }
 }
