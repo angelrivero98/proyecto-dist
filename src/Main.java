@@ -25,6 +25,7 @@ public class Main {
                 // Examples:
                 // Register node: send_message 192.168.1.57 9000 register_node$Tienda2$192.168.1.57$9500
                 // List products: send_message 192.168.1.57 9000 list_company_products$
+                // List products by store: send_message 192.168.1.57 9000 list_store_products$
                 String serverIp = args[1];
                 Integer serverPort = new Integer(args[2]);
                 NetworkIdentifier target = new NetworkIdentifier(serverIp, serverPort);
@@ -41,6 +42,12 @@ public class Main {
                         for (String serializedProduct : serializedProducts) {
                             String[] components = serializedProduct.split("#");
                             System.out.println(String.format("| %10s | %10s |", components[0], components[1]));
+                        }
+                    } else if (serverInstruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)){
+                        System.out.println("Productos de compañia por tienda");
+                        String[] serializedProducts = split[1].split(",");
+                        for (String serializedProduct : serializedProducts) {
+                            System.out.println(serializedProduct);
                         }
                     }
                 } catch (IndexOutOfBoundsException e) {

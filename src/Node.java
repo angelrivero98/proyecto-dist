@@ -4,10 +4,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Node {
     private NetworkIdentifier networkIdentifier;
@@ -91,6 +88,9 @@ public class Node {
             String result = builder.toString();
             // Send an instruction to the sender to let him know that he needs to format the list of products
             senderOuput.println(Instructions.LIST_PRODUCTS_BY_COMPANY + "$" + result);
+        } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)) {
+            String result = serializeProductsOrderByCode();
+            senderOuput.println(Instructions.LIST_PRODUCTS_BY_STORE+ "$" + result);
         }
         senderOuput.close();
     }
@@ -214,6 +214,20 @@ public class Node {
         StringBuilder resultBuilder = new StringBuilder();
         int i = 0, size = this.products.size();
         for (Product p : this.products) {
+            resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
+            if(++i != size){
+                resultBuilder.append(",");
+            }
+        }
+        return resultBuilder.toString();
+    }
+
+    private String serializeProductsOrderByCode(){
+        StringBuilder resultBuilder = new StringBuilder();
+        List<Product> productsCopy = this.products;
+        productsCopy.sort(Comparator.comparing(Product::getCode));
+        int i = 0, size = productsCopy.size();
+        for (Product p : productsCopy) {
             resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
             if(++i != size){
                 resultBuilder.append(",");
