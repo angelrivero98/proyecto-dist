@@ -1,0 +1,3 @@
+# Aliases para simplificar la ejecucion en VMs Linux
+# Debes estar en la carpeta en donde se encuentre el jar del proyecto
+alias app='java -jar proyecto-dist.jar'
