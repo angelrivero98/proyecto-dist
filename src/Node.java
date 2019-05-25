@@ -6,12 +6,15 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Node {
     private NetworkIdentifier networkIdentifier;
     private ServerSocket listeningSocket;
     private Store store;
     private HashMap<String, NetworkIdentifier> knownStores = new HashMap<>();
+    private List<Product> products = new ArrayList<>();
     // Used to only print once that the server is listening on a ip:port
     private boolean initialListening = true;
 
@@ -67,6 +70,15 @@ public class Node {
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
+        }else if (instruction.equals(Instructions.REGISTER_PRODUCT)){
+            String productBeingRegistered = split[1];
+            String[] splitProduct = productBeingRegistered.split("#");
+            Product product = new Product(this.store.getName(),splitProduct[0],new Integer(splitProduct[1]));
+            products.add(product);
+            System.out.println(String.format("Agregado producto | cod : %s cantidad : %s",product.getCode(),product.getAmount()));
+            broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
+        }else if (instruction.equals(Instructions.UPDATE_PRODUCTS)){
+            deserializeProductsList(split[1]);
         }
         senderOuput.close();
     }
@@ -83,6 +95,21 @@ public class Node {
             NetworkIdentifier storeNetworkId = new NetworkIdentifier(storeComponents[1]);
             System.out.println(String.format("Actualizando lista de nodos | %s (%s)", storeName, storeNetworkId));
             knownStores.put(storeName, storeNetworkId);
+        }
+    }
+
+    /**
+     * Receives a serialized list of products and deserializes it while updating
+     * the list of knows products.
+     */
+
+    private void deserializeProductsList(String serializaedList){
+        String[] splitProductsList = serializaedList.split(",");
+        for(String serializedProduct: splitProductsList){
+            String[] productComponents = serializedProduct.split("#");
+            Product product = new Product(productComponents[0],productComponents[1],new Integer(productComponents[2]));
+            System.out.println(String.format("Actualizado lista de productos | %s %s %s",productComponents[0],productComponents[1],productComponents[2]));
+            this.products.add(product);
         }
     }
 
@@ -128,6 +155,24 @@ public class Node {
             resultBuilder.append(String.format("%s#%s", storeName, storeNetworkId));
             if (++i != size)
                 resultBuilder.append(",");
+        }
+        return resultBuilder.toString();
+    }
+
+    /**
+     * Generates a String containing the data of all the known products in the following format:
+     * {store1_name}#{product_code}#{product_amount}, ... ,{storeN_name}#{storeN_network_id}
+     * <p>
+     * For example: Store1#5#2000,Store2#1#5000
+     */
+    private String serializeProducts(){
+        StringBuilder resultBuilder = new StringBuilder();
+        int i = 0, size = this.products.size();
+        for (Product p : this.products) {
+            resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
+            if(++i != size){
+                resultBuilder.append(",");
+            }
         }
         return resultBuilder.toString();
     }
