@@ -14,7 +14,7 @@ public class Node {
     private ServerSocket listeningSocket;
     private Store store;
     private HashMap<String, NetworkIdentifier> knownStores = new HashMap<>();
-    private List<Product> products = new ArrayList<>();
+    private List<Product> products;
     // Used to only print once that the server is listening on a ip:port
     private boolean initialListening = true;
 
@@ -33,6 +33,7 @@ public class Node {
                             networkIdentifier.ipAddress,
                             networkIdentifier.port)
             );
+            this.products = new ArrayList<>();
             initialListening = false;
         }
         try {
@@ -74,8 +75,7 @@ public class Node {
             String productBeingRegistered = split[1];
             String[] splitProduct = productBeingRegistered.split("#");
             Product product = new Product(this.store.getName(),splitProduct[0],new Integer(splitProduct[1]));
-            products.add(product);
-            System.out.println(String.format("Agregado producto | cod : %s cantidad : %s",product.getCode(),product.getAmount()));
+            addProduct(product);
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOuput.println(Alerts.PRODUCT_REGISTERED);
@@ -107,10 +107,27 @@ public class Node {
 
     private void deserializeProductsList(String serializaedList){
         String[] splitProductsList = serializaedList.split(",");
+        this.products = new ArrayList<>();
         for(String serializedProduct: splitProductsList){
             String[] productComponents = serializedProduct.split("#");
             Product product = new Product(productComponents[0],productComponents[1],new Integer(productComponents[2]));
             System.out.println(String.format("Actualizado lista de productos | %s %s %s",productComponents[0],productComponents[1],productComponents[2]));
+            this.products.add(product);
+        }
+        System.out.println("------------------------");
+    }
+
+    private void addProduct(Product product) {
+        boolean added = false;
+        for(Product p: this.products){
+            if(p.getCode().equals(product.getCode()) && p.getStore().equals(product.getStore())){
+                p.sumAmount(product.getAmount());
+                System.out.println(String.format("Producto actualizado | cod : %s cantidad : %s",p.getCode(),p.getAmount()));
+                added = true;
+            }
+        }
+        if (!added) {
+            System.out.println(String.format("Agregado producto | cod : %s cantidad : %s",product.getCode(),product.getAmount()));
             this.products.add(product);
         }
     }

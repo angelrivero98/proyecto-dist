@@ -27,4 +27,8 @@ public class Product {
         return this.amount;
 
     }
+
+    public void sumAmount(Integer sum){
+        this.amount += sum;
+    }
 }
