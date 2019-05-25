@@ -74,8 +74,7 @@ public class Node {
             String productBeingRegistered = split[1];
             String[] splitProduct = productBeingRegistered.split("#");
             Product product = new Product(this.store.getName(),splitProduct[0],new Integer(splitProduct[1]));
-            comprimirProductos(product);
-
+            addProduct(product);
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOuput.println(Alerts.PRODUCT_REGISTERED);
@@ -115,7 +114,7 @@ public class Node {
         }
     }
 
-    private void comprimirProductos(Product product){
+    private void addProduct(Product product) {
         boolean added = false;
         for(Product p: this.products){
             if(p.getCode().equals(product.getCode()) && p.getStore().equals(product.getStore())){
