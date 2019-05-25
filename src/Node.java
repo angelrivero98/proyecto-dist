@@ -70,7 +70,7 @@ public class Node {
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
-        }else if (instruction.equals(Instructions.REGISTER_PRODUCT)){
+        } else if (instruction.equals(Instructions.REGISTER_PRODUCT)) {
             String productBeingRegistered = split[1];
             String[] splitProduct = productBeingRegistered.split("#");
             Product product = new Product(this.store.getName(),splitProduct[0],new Integer(splitProduct[1]));
@@ -79,15 +79,42 @@ public class Node {
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOuput.println(Alerts.PRODUCT_REGISTERED);
-        }else if (instruction.equals(Instructions.UPDATE_PRODUCTS)){
+        } else if (instruction.equals(Instructions.UPDATE_PRODUCTS)) {
             deserializeProductsList(split[1]);
+        } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_COMPANY)) {
+            StringBuilder builder = new StringBuilder();
+            for (Map.Entry<String, Integer> entry : getAcummulatedCompanyProducts().entrySet()) {
+                String productCode = entry.getKey();
+                Integer productAmountInCompany = entry.getValue();
+                builder.append(String.format("%s#%d,", productCode, productAmountInCompany));
+            }
+            String result = builder.toString();
+            // TODO: Creo que en el Main, donde se recibe esta respuesta, se deberia procesar para formatearlo de pinga
+            //       Para no mostrar la lista asi caiman
+            senderOuput.println(result);
         }
         senderOuput.close();
     }
 
     /**
+     * Return a mapping of product codes to amounts, which corresponds to the amount of products
+     * in the company (sum of every amount per store).
+     */
+    private Map<String, Integer> getAcummulatedCompanyProducts() {
+        HashMap<String, Integer> productToQuantity = new HashMap<>();
+        for (Product p : products) {
+            if (productToQuantity.containsKey(p.getCode())) {
+                int newAmount = productToQuantity.get(p.getCode()) + p.getAmount();
+                productToQuantity.put(p.getCode(), newAmount);
+            } else {
+                productToQuantity.put(p.getCode(), p.getAmount());
+            }
+        }
+        return productToQuantity;
+    }
+    /**
      * Receives a serialized list of nodes and deserializes it while updating
-     * the table of know nodes.
+     * the table of known nodes.
      */
     private void deserializeNodeListAndUpdate(String serializedList) {
         String[] splitStoreList = serializedList.split(",");
@@ -102,7 +129,7 @@ public class Node {
 
     /**
      * Receives a serialized list of products and deserializes it while updating
-     * the list of knows products.
+     * the list of known products.
      */
 
     private void deserializeProductsList(String serializaedList){
@@ -173,6 +200,18 @@ public class Node {
         for (Product p : this.products) {
             resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
             if(++i != size){
+                resultBuilder.append(",");
+            }
+        }
+        return resultBuilder.toString();
+    }
+
+    private String serializeProducts(List<Product> products) {
+        StringBuilder resultBuilder = new StringBuilder();
+        int i = 0, size = products.size();
+        for (Product p : products) {
+            resultBuilder.append(String.format("%s#%s#%s", p.getStore(), p.getCode(), p.getAmount()));
+            if (++i != size) {
                 resultBuilder.append(",");
             }
         }

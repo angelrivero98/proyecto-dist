@@ -22,7 +22,9 @@ public class Main {
         } else {
             try {
                 // Argument order: send_message {ip} {port} {message}
-                // For example: send_message 192.168.1.57 9000 register_node$Tienda2$192.168.1.57$9500
+                // Examples:
+                // Register node: send_message 192.168.1.57 9000 register_node$Tienda2$192.168.1.57$9500
+                // List products: send_message 192.168.1.57 9000 list_company_products$
                 String serverIp = args[1];
                 Integer serverPort = new Integer(args[2]);
                 NetworkIdentifier target = new NetworkIdentifier(serverIp, serverPort);
