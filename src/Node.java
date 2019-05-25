@@ -4,10 +4,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Node {
     private NetworkIdentifier networkIdentifier;
@@ -66,7 +66,7 @@ public class Node {
             knownStores.put(storeBeingRegistered, storeNetworkId);
             broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
             // Let the process that sent the message know that it was successfully processed
-            senderOuput.println(Instructions.NODE_REGISTERED);
+            senderOuput.println(Alerts.NODE_REGISTERED);
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
@@ -77,6 +77,8 @@ public class Node {
             products.add(product);
             System.out.println(String.format("Agregado producto | cod : %s cantidad : %s",product.getCode(),product.getAmount()));
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
+            // Let the process that sent the message know that it was successfully processed
+            senderOuput.println(Alerts.PRODUCT_REGISTERED);
         }else if (instruction.equals(Instructions.UPDATE_PRODUCTS)){
             deserializeProductsList(split[1]);
         }
