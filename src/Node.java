@@ -89,9 +89,8 @@ public class Node {
                 builder.append(String.format("%s#%d,", productCode, productAmountInCompany));
             }
             String result = builder.toString();
-            // TODO: Creo que en el Main, donde se recibe esta respuesta, se deberia procesar para formatearlo de pinga
-            //       Para no mostrar la lista asi caiman
-            senderOuput.println(result);
+            // Send an instruction to the sender to let him know that he needs to format the list of products
+            senderOuput.println(Instructions.LIST_PRODUCTS_BY_COMPANY + "$" + result);
         }
         senderOuput.close();
     }
