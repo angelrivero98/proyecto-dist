@@ -221,16 +221,4 @@ public class Node {
         }
         return resultBuilder.toString();
     }
-
-    private String serializeProducts(List<Product> products) {
-        StringBuilder resultBuilder = new StringBuilder();
-        int i = 0, size = products.size();
-        for (Product p : products) {
-            resultBuilder.append(String.format("%s#%s#%s", p.getStore(), p.getCode(), p.getAmount()));
-            if (++i != size) {
-                resultBuilder.append(",");
-            }
-        }
-        return resultBuilder.toString();
-    }
 }
