@@ -14,7 +14,7 @@ public class Node {
     private ServerSocket listeningSocket;
     private Store store;
     private HashMap<String, NetworkIdentifier> knownStores = new HashMap<>();
-    private List<Product> products = new ArrayList<>();
+    private List<Product> products;
     // Used to only print once that the server is listening on a ip:port
     private boolean initialListening = true;
 
@@ -33,6 +33,7 @@ public class Node {
                             networkIdentifier.ipAddress,
                             networkIdentifier.port)
             );
+            this.products = new ArrayList<>();
             initialListening = false;
         }
         try {
@@ -106,12 +107,14 @@ public class Node {
 
     private void deserializeProductsList(String serializaedList){
         String[] splitProductsList = serializaedList.split(",");
+        this.products = new ArrayList<>();
         for(String serializedProduct: splitProductsList){
             String[] productComponents = serializedProduct.split("#");
             Product product = new Product(productComponents[0],productComponents[1],new Integer(productComponents[2]));
             System.out.println(String.format("Actualizado lista de productos | %s %s %s",productComponents[0],productComponents[1],productComponents[2]));
             this.products.add(product);
         }
+        System.out.println("------------------------");
     }
 
     private void addProduct(Product product) {
