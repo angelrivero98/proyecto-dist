@@ -60,6 +60,7 @@ public class Node {
             System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
             knownStores.put(storeBeingRegistered, storeNetworkId);
             broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
+            sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOuput.println(Alerts.NODE_REGISTERED);
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
