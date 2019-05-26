@@ -100,7 +100,7 @@ public class Node {
             // Send an instruction to the sender to let him know that he needs to format the list of products
             senderOuput.println(Instructions.LIST_PRODUCTS_BY_COMPANY + "$" + result);
         } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)) {
-            String result = serializeProductsOrderByCode();
+            String result = serializeProducts();
             senderOuput.println(Instructions.LIST_PRODUCTS_BY_STORE+ "$" + result);
         } else if (instruction.equals(Instructions.SHUTDOWN)) {
             clear();
@@ -229,20 +229,6 @@ public class Node {
         StringBuilder resultBuilder = new StringBuilder();
         int i = 0, size = this.products.size();
         for (Product p : this.products) {
-            resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
-            if(++i != size){
-                resultBuilder.append(",");
-            }
-        }
-        return resultBuilder.toString();
-    }
-
-    private String serializeProductsOrderByCode(){
-        StringBuilder resultBuilder = new StringBuilder();
-        List<Product> productsCopy = this.products;
-        productsCopy.sort(Comparator.comparing(Product::getCode));
-        int i = 0, size = productsCopy.size();
-        for (Product p : productsCopy) {
             resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
             if(++i != size){
                 resultBuilder.append(",");
