@@ -10,6 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import exceptions.NodeShutDownException;
+
 public class Node {
     private NetworkIdentifier networkIdentifier;
     private ServerSocket listeningSocket;
@@ -27,8 +29,12 @@ public class Node {
         knownStores.put(storeName, networkIdentifier);
     }
 
-    public void listen() {
+    private static void clear() {
         for (int i = 0; i < 50; ++i) System.out.println();
+    }
+
+    public void listen() {
+        clear();
         printStatus();
         try {
             Socket clientSocket = listeningSocket.accept();
@@ -37,9 +43,9 @@ public class Node {
             processReceivedMessage(clientSocket, receivedMessage);
             in.close();
             clientSocket.close();
+            this.listen();
         } catch (IOException e) {
             System.out.println("Error while establishing connection with client");
-        } finally {
             this.listen();
         }
     }
@@ -57,13 +63,19 @@ public class Node {
             String ipBeingRegistered = split[2];
             Integer portBeingRegistered = new Integer(split[3]);
             NetworkIdentifier storeNetworkId = new NetworkIdentifier(ipBeingRegistered, portBeingRegistered);
-            System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
-            knownStores.put(storeBeingRegistered, storeNetworkId);
-            broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
-            if (this.products.size() > 0)
-                sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
-            // Let the process that sent the message know that it was successfully processed
-            senderOuput.println(Alerts.NODE_REGISTERED);
+            if (knownStores.containsKey(storeBeingRegistered)) {
+                // No podemos permitir que se registren tiendas con nombres repetidos
+                senderOuput.println(Alerts.REPEATED_NAME_ERROR);
+                sendMessage(storeNetworkId, Instructions.SHUTDOWN + "$" + Alerts.REPEATED_NAME_ERROR);
+            } else {
+                System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
+                knownStores.put(storeBeingRegistered, storeNetworkId);
+                broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
+                if (this.products.size() > 0)
+                    sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
+                // Let the process that sent the message know that it was successfully processed
+                senderOuput.println(Alerts.NODE_REGISTERED);
+            }
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
@@ -90,6 +102,9 @@ public class Node {
         } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)) {
             String result = serializeProductsOrderByCode();
             senderOuput.println(Instructions.LIST_PRODUCTS_BY_STORE+ "$" + result);
+        } else if (instruction.equals(Instructions.SHUTDOWN)) {
+            clear();
+            throw new NodeShutDownException(split[1]);
         }
         senderOuput.close();
     }
