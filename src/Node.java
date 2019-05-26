@@ -60,7 +60,8 @@ public class Node {
             System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
             knownStores.put(storeBeingRegistered, storeNetworkId);
             broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
-            sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
+            if (this.products.size() > 0)
+                sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOuput.println(Alerts.NODE_REGISTERED);
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
@@ -208,7 +209,8 @@ public class Node {
      * <p>
      * For example: Store1#5#2000,Store2#1#5000
      */
-    private String serializeProducts(){
+    private String serializeProducts() {
+        this.products.sort(Comparator.comparing(Product::getCode));
         StringBuilder resultBuilder = new StringBuilder();
         int i = 0, size = this.products.size();
         for (Product p : this.products) {
