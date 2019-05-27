@@ -76,7 +76,8 @@ public class Main {
                     System.out.println(String.format("| %15s | %10s | %10s |", components[0], components[1], components[2]));
                 }
             }
-        } catch (IndexOutOfBoundsException e) {
+        } catch (Exception e) {
+            System.out.println(message);
             System.out.println("No hay instruccion del servidor, terminamos.");
         }
     }

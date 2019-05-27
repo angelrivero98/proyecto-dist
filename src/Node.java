@@ -105,6 +105,8 @@ public class Node {
         } else if (instruction.equals(Instructions.SHUTDOWN)) {
             clear();
             throw new NodeShutDownException(split[1]);
+        } else {
+            System.out.println("Mensaje no reconocido: " + receivedMessage);
         }
         senderOuput.close();
     }
