@@ -1,3 +1,5 @@
+package data;
+
 public class Store {
     private String name;
     // TODO: List of items / instance of Inventory

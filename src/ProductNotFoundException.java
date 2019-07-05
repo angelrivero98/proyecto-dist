@@ -1,2 +1,0 @@
-class ProductNotFoundException extends RuntimeException {
-}

@@ -1,3 +1,5 @@
+package data;
+
 import java.util.Date;
 
 public class Product {
@@ -41,18 +43,18 @@ public class Product {
 
     /**
      * Validates that the product has enough supply to meet the order
-     * and generates the corresponding Transaction object.
+     * and generates the corresponding data.Transaction object.
      *
      * @param amount Amount of product to be bought
-     * @return Transaction object representing the order
+     * @return data.Transaction object representing the order
      * @throws IllegalArgumentException If the desired amount if greater than the product quantity
      */
-    public Transaction buy(int amount) {
+    public Transaction buy(Client client, int amount) {
         if (!canBeBought(amount))
             throw new IllegalArgumentException("Can't buy that many units");
 
         this.amount -= amount;
 
-        return new Transaction(new Date(), this.getCode(), amount);
+        return new Transaction(new Date(), this.getCode(), amount, client);
     }
 }

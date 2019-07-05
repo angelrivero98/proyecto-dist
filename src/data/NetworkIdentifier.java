@@ -1,3 +1,5 @@
+package data;
+
 public class NetworkIdentifier {
     public String ipAddress;
     public int port;
@@ -8,7 +10,7 @@ public class NetworkIdentifier {
     }
 
     /**
-     * Recibe un string del formato: {ip}:{puerto} y genera una instancia de NetworkIdentifier
+     * Recibe un string del formato: {ip}:{puerto} y genera una instancia de data.NetworkIdentifier
      */
     public NetworkIdentifier(String serializedContent) {
         String[] components = serializedContent.split(":");

@@ -1,4 +1,8 @@
+import constants.Alerts;
+import constants.Instructions;
+import data.*;
 import exceptions.NodeShutDownException;
+import exceptions.ProductNotFoundException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,7 +18,7 @@ public class Node {
     private Store store;
     private HashMap<String, NetworkIdentifier> knownStores = new HashMap<>();
     private List<Product> products;
-    private HashMap<String, Transaction> transactionsByClient;
+    private List<Transaction> transactions;
 
     // Used to only print once that the server is listening on a ip:port
     private boolean initialListening = true;
@@ -22,7 +26,7 @@ public class Node {
     public Node(String storeName, String ip, int port) throws IOException {
         store = new Store(storeName);
         products = new ArrayList<>();
-        transactionsByClient = new HashMap<>();
+        transactions = new ArrayList<>();
         listeningSocket = new ServerSocket(port);
         networkIdentifier = new NetworkIdentifier(ip, port);
         knownStores.put(storeName, networkIdentifier);
@@ -103,15 +107,15 @@ public class Node {
             String result = serializeProducts();
             senderOutput.println(Instructions.LIST_PRODUCTS_BY_STORE + "$" + result);
         } else if (instruction.equals(Instructions.BUY_PRODUCT)) {
-            // Message format: buy_product${product_code}${amount}${client}
+            // Message format: buy_product${product_code}${amount}${client_name}${client_code}
             String productCode = split[1];
             int amountBought = Integer.valueOf(split[2]);
-            String client = split[3];
+            Client client = new Client(split[4], split[3]);
             try {
                 Product product = searchProductByCode(productCode);
-                Transaction tx = product.buy(amountBought);
-                transactionsByClient.put(client, tx);
-                senderOutput.println(client + " compro exitosamente " + amountBought + " " + productCode);
+                Transaction tx = product.buy(client, amountBought);
+                transactions.add(tx);
+                senderOutput.println(client.getName() + " compro exitosamente " + amountBought + " " + productCode);
                 // TODO: Write to the backup text file [Rommel]
                 // Let the other stores know about your new amount of products
                 broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
@@ -120,6 +124,10 @@ public class Node {
             } catch (IllegalArgumentException e) {
                 senderOutput.println(Alerts.INVALID_BUY_AMOUNT);
             }
+        }
+        if (instruction.equals(Instructions.LIST_STORE_TRANSACTIONS)) {
+            String result = serializeTransactions();
+            senderOutput.println(Instructions.LIST_STORE_TRANSACTIONS + "$" + result);
         } else if (instruction.equals(Instructions.SHUTDOWN)) {
             clear();
             throw new NodeShutDownException(split[1]);
@@ -252,6 +260,33 @@ public class Node {
         for (Product p : this.products) {
             resultBuilder.append(String.format("%s#%s#%s",p.getStore(),p.getCode(),p.getAmount()));
             if(++i != size){
+                resultBuilder.append(",");
+            }
+        }
+        return resultBuilder.toString();
+    }
+
+    /**
+     * Generates a String containing the data of all the known transactions in the following format:
+     * {store_name}#{product_code}#{product_amount}#{client_name}#{client_code}, ...
+     * <p>
+     * For example: Store1#WiPod#50#Juan C#001, Store1#WiPod#20#Someone#002
+     */
+    private String serializeTransactions() {
+        this.transactions.sort(Comparator.comparing(transaction -> transaction.getClient().getCode()));
+        StringBuilder resultBuilder = new StringBuilder();
+        int i = 0, size = this.transactions.size();
+        for (Transaction t : this.transactions) {
+            resultBuilder.append(
+                    String.format("%s#%s#%d#%s#%s",
+                            this.store.getName(),
+                            t.getProductCode(),
+                            t.getAmountBought(),
+                            t.getClient().getName(),
+                            t.getClient().getCode()
+                    )
+            );
+            if (++i != size) {
                 resultBuilder.append(",");
             }
         }
