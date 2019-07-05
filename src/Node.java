@@ -1,16 +1,12 @@
+import exceptions.NodeShutDownException;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import exceptions.NodeShutDownException;
+import java.util.*;
 
 public class Node {
     private NetworkIdentifier networkIdentifier;
@@ -18,12 +14,15 @@ public class Node {
     private Store store;
     private HashMap<String, NetworkIdentifier> knownStores = new HashMap<>();
     private List<Product> products;
+    private HashMap<String, Transaction> transactionsByClient;
+
     // Used to only print once that the server is listening on a ip:port
     private boolean initialListening = true;
 
     public Node(String storeName, String ip, int port) throws IOException {
         store = new Store(storeName);
         products = new ArrayList<>();
+        transactionsByClient = new HashMap<>();
         listeningSocket = new ServerSocket(port);
         networkIdentifier = new NetworkIdentifier(ip, port);
         knownStores.put(storeName, networkIdentifier);
@@ -54,18 +53,18 @@ public class Node {
         if (receivedMessage == null)
             return;
 
-        PrintWriter senderOuput = new PrintWriter(sender.getOutputStream(), true);
+        PrintWriter senderOutput = new PrintWriter(sender.getOutputStream(), true);
         String[] split = receivedMessage.split("\\$");
         String instruction = split[0];
         if (instruction.equals(Instructions.REGISTER_NODE)) {
             // Message format: register_node${store_name}${ip}${port}
             String storeBeingRegistered = split[1];
             String ipBeingRegistered = split[2];
-            Integer portBeingRegistered = new Integer(split[3]);
+            int portBeingRegistered = Integer.parseInt(split[3]);
             NetworkIdentifier storeNetworkId = new NetworkIdentifier(ipBeingRegistered, portBeingRegistered);
             if (knownStores.containsKey(storeBeingRegistered)) {
                 // No podemos permitir que se registren tiendas con nombres repetidos
-                senderOuput.println(Alerts.REPEATED_NAME_ERROR);
+                senderOutput.println(Alerts.REPEATED_NAME_ERROR);
                 sendMessage(storeNetworkId, Instructions.SHUTDOWN + "$" + Alerts.REPEATED_NAME_ERROR);
             } else {
                 System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
@@ -74,48 +73,67 @@ public class Node {
                 if (this.products.size() > 0)
                     sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
                 // Let the process that sent the message know that it was successfully processed
-                senderOuput.println(Alerts.NODE_REGISTERED);
+                senderOutput.println(Alerts.NODE_REGISTERED);
             }
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
         } else if (instruction.equals(Instructions.REGISTER_PRODUCT)) {
+            // Message format: register_product${[product_name]#{amount}}
             String productBeingRegistered = split[1];
             String[] splitProduct = productBeingRegistered.split("#");
-            Product product = new Product(this.store.getName(),splitProduct[0],new Integer(splitProduct[1]));
+            Product product = new Product(this.store.getName(), splitProduct[0], Integer.valueOf(splitProduct[1]));
             addProduct(product);
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
             // Let the process that sent the message know that it was successfully processed
-            senderOuput.println(Alerts.PRODUCT_REGISTERED);
+            senderOutput.println(Alerts.PRODUCT_REGISTERED);
         } else if (instruction.equals(Instructions.UPDATE_PRODUCTS)) {
             deserializeProductsList(split[1]);
         } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_COMPANY)) {
             StringBuilder builder = new StringBuilder();
-            for (Map.Entry<String, Integer> entry : getAcummulatedCompanyProducts().entrySet()) {
+            for (Map.Entry<String, Integer> entry : getAccumulatedCompanyProducts().entrySet()) {
                 String productCode = entry.getKey();
                 Integer productAmountInCompany = entry.getValue();
                 builder.append(String.format("%s#%d,", productCode, productAmountInCompany));
             }
             String result = builder.toString();
             // Send an instruction to the sender to let him know that he needs to format the list of products
-            senderOuput.println(Instructions.LIST_PRODUCTS_BY_COMPANY + "$" + result);
+            senderOutput.println(Instructions.LIST_PRODUCTS_BY_COMPANY + "$" + result);
         } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_STORE)) {
             String result = serializeProducts();
-            senderOuput.println(Instructions.LIST_PRODUCTS_BY_STORE+ "$" + result);
+            senderOutput.println(Instructions.LIST_PRODUCTS_BY_STORE + "$" + result);
+        } else if (instruction.equals(Instructions.BUY_PRODUCT)) {
+            // Message format: buy_product${product_code}${amount}${client}
+            String productCode = split[1];
+            int amountBought = Integer.valueOf(split[2]);
+            String client = split[3];
+            try {
+                Product product = searchProductByCode(productCode);
+                Transaction tx = product.buy(amountBought);
+                transactionsByClient.put(client, tx);
+                senderOutput.println(client + " compro exitosamente " + amountBought + " " + productCode);
+                // TODO: Write to the backup text file [Rommel]
+                // Let the other stores know about your new amount of products
+                broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
+            } catch (ProductNotFoundException e) {
+                senderOutput.println(Alerts.INVALID_PRODUCT_CODE);
+            } catch (IllegalArgumentException e) {
+                senderOutput.println(Alerts.INVALID_BUY_AMOUNT);
+            }
         } else if (instruction.equals(Instructions.SHUTDOWN)) {
             clear();
             throw new NodeShutDownException(split[1]);
         } else {
             System.out.println("Mensaje no reconocido: " + receivedMessage);
         }
-        senderOuput.close();
+        senderOutput.close();
     }
 
     /**
      * Return a mapping of product codes to amounts, which corresponds to the amount of products
      * in the company (sum of every amount per store).
      */
-    private Map<String, Integer> getAcummulatedCompanyProducts() {
+    private Map<String, Integer> getAccumulatedCompanyProducts() {
         HashMap<String, Integer> productToQuantity = new HashMap<>();
         for (Product p : products) {
             if (productToQuantity.containsKey(p.getCode())) {
@@ -127,6 +145,7 @@ public class Node {
         }
         return productToQuantity;
     }
+
     /**
      * Receives a serialized list of nodes and deserializes it while updating
      * the table of known nodes.
@@ -147,8 +166,8 @@ public class Node {
      * the list of known products.
      */
 
-    private void deserializeProductsList(String serializaedList){
-        String[] splitProductsList = serializaedList.split(",");
+    private void deserializeProductsList(String serializedList) {
+        String[] splitProductsList = serializedList.split(",");
         this.products = new ArrayList<>();
         for(String serializedProduct: splitProductsList){
             String[] productComponents = serializedProduct.split("#");
@@ -237,6 +256,15 @@ public class Node {
             }
         }
         return resultBuilder.toString();
+    }
+
+    private Product searchProductByCode(String code) {
+        for (Product product : products) {
+            if (product.getCode().equals(code))
+                return product;
+        }
+
+        throw new ProductNotFoundException();
     }
 
     private void printStatus() {
