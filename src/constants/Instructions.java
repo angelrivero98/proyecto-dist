@@ -9,5 +9,6 @@ public class Instructions {
     public static String LIST_PRODUCTS_BY_STORE = "list_store_products";
     public static String BUY_PRODUCT = "buy_product";
     public static String LIST_STORE_TRANSACTIONS = "list_your_transactions";
+    public static String UPDATE_PRODUCT = "update_product";
     public static String SHUTDOWN = "shutdown";
 }

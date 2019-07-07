@@ -32,6 +32,10 @@ public class Product {
 
     }
 
+    public void setAmount(Integer amount){
+        this.amount = amount;
+    }
+
     public void sumAmount(Integer sum){
         this.amount += sum;
     }

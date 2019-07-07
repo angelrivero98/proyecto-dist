@@ -124,6 +124,19 @@ public class Node {
             } catch (IllegalArgumentException e) {
                 senderOutput.println(Alerts.INVALID_BUY_AMOUNT);
             }
+        } else if (instruction.equals(Instructions.UPDATE_PRODUCT)){
+            // Message format: update_product${{product_code}#{amount}}
+            String productBeingUpdated = split[1];
+            String[] splitProduct = productBeingUpdated.split("#");
+            try {
+                Product product = searchProductByCode(splitProduct[0]);
+                product.setAmount(Integer.valueOf(splitProduct[1]));
+                senderOutput.println("Se actualizo el producto: " + product.getCode() + " con " + product.getAmount());
+                broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
+            } catch (ProductNotFoundException e) {
+                senderOutput.println(Alerts.INVALID_PRODUCT_CODE);
+            }
+
         }
         if (instruction.equals(Instructions.LIST_STORE_TRANSACTIONS)) {
             String result = serializeTransactions();
