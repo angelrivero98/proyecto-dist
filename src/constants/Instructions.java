@@ -11,4 +11,5 @@ public class Instructions {
     public static String LIST_STORE_TRANSACTIONS = "list_your_transactions";
     public static String UPDATE_PRODUCT = "update_product";
     public static String SHUTDOWN = "shutdown";
+    public static String UPDATE_TRANSACTIONS = "update_transactions";
 }

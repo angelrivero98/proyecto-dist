@@ -121,11 +121,15 @@ public class Node {
                 senderOutput.println(client.getName() + " compro exitosamente " + amountBought + " " + productCode);
                 // Let the other stores know about your new amount of products
                 broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
+                broadcast(Instructions.UPDATE_TRANSACTIONS + "$" + serializeTransactions());
             } catch (ProductNotFoundException e) {
                 senderOutput.println(Alerts.INVALID_PRODUCT_CODE);
             } catch (IllegalArgumentException e) {
                 senderOutput.println(Alerts.INVALID_BUY_AMOUNT);
             }
+        } else if (instruction.equals(Instructions.UPDATE_TRANSACTIONS)) {
+            deserializeTransactionList(split[1]);
+            writeTransactionsFile();
         } else if (instruction.equals(Instructions.UPDATE_PRODUCT)){
             // Message format: update_product${{product_code}#{amount}}
             String productBeingUpdated = split[1];
@@ -367,7 +371,7 @@ public class Node {
         for (Transaction t : this.transactions) {
             resultBuilder.append(
                     String.format("%s#%s#%d#%s#%s",
-                            this.store.getName(),
+                            t.getStoreName(),
                             t.getProductCode(),
                             t.getAmountBought(),
                             t.getClient().getName(),
