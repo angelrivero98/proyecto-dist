@@ -122,8 +122,10 @@ public class Main {
 //        parameters.put("productName", "");
         System.out.println("IP para conectarse");
         parameters.put("ipConnection",sn.next());
+        sn.nextLine();
         System.out.println("Puerto para conectarse");
         parameters.put("portConnection",sn.next());
+        sn.nextLine();
         while (!exit) {
             System.out.println("1. Levantar servidor");
             System.out.println("2. Agregar tienda al sistema");
@@ -144,16 +146,20 @@ public class Main {
                     case 1:
                         System.out.println("Nombre de tienda");
                         parameters.put("store",sn.next());
+                        sn.nextLine();
                         nodeSetup(parameters.get("store"),parameters.get("ipConnection"),Integer.parseInt(parameters.get("portConnection")));
                         break;
                     case 2:
                         //"register_node$Store2$127.0.0.1$7002$"
                         System.out.println("Nombre de tienda");
                         parameters.put("store",sn.next());
+                        sn.nextLine();
                         System.out.println("IP de la tienda a registrar");
                         parameters.put("ipDestination",sn.next());
+                        sn.nextLine();
                         System.out.println("Puerto de la tienda a registrar");
                         parameters.put("portDestination",sn.next());
+                        sn.nextLine();
                         messageContent = String.format("register_node$%s$%s$%d$",parameters.get("store"),parameters.get("ipDestination"),
                                         Integer.parseInt(parameters.get("portDestination")));
                         System.out.println(messageContent);
@@ -163,8 +169,10 @@ public class Main {
                         //"register_product$WiPod#50"
                         System.out.println("Nombre del producto");
                         parameters.put("productName", sn.next());
+                        sn.nextLine();
                         System.out.println("Cantidad");
                         parameters.put("quantity", sn.next());
+                        sn.nextLine();
                         messageContent = String.format("register_product$%s#%d",parameters.get("productName"),Integer.parseInt(parameters.get("quantity")));
                         networkMessageSetup(parameters.get("ipConnection"),Integer.parseInt(parameters.get("portConnection")),messageContent);
                         break;
@@ -172,8 +180,10 @@ public class Main {
                         //"update_product$001#5"
                         System.out.println("Nombre del producto");
                         parameters.put("productName",sn.next());
+                        sn.nextLine();
                         System.out.println("Cantidad para actualizar");
                         parameters.put("quantity",sn.next());
+                        sn.nextLine();
                         messageContent = String.format("update_product$%s#%d",parameters.get("productName"),Integer.parseInt(parameters.get("quantity")));
                         networkMessageSetup(parameters.get("ipConnection"),Integer.parseInt(parameters.get("portConnection")),messageContent);
                         break;
@@ -181,12 +191,15 @@ public class Main {
                         //"buy_product$WiPod$5$Juan C.$0001"
                         System.out.println("Codigo del producto");
                         parameters.put("productCode",sn.next());
+                        sn.nextLine();
                         System.out.println("Cantidad a comprar");
                         parameters.put("quantity",sn.next());
+                        sn.nextLine();
                         System.out.println("Nombre del cliente");
-                        parameters.put("clientName",sn.next());
+                        parameters.put("clientName", sn.nextLine());
                         System.out.println("Codigo del cliente");
                         parameters.put("clientCode",sn.next());
+                        sn.nextLine();
                         messageContent = String.format("buy_product$%s$%d$%s$%s",parameters.get("productCode"),Integer.parseInt(parameters.get("quantity")),
                                             parameters.get("clientName"),parameters.get("clientCode"));
                         networkMessageSetup(parameters.get("ipConnection"),Integer.parseInt(parameters.get("portConnection")),messageContent);
@@ -206,8 +219,10 @@ public class Main {
                     case 9:
                         System.out.println("IP para conectarse");
                         parameters.put("ipConnection",sn.next());
+                        sn.nextLine();
                         System.out.println("Puerto para conectarse");
                         parameters.put("portConnection",sn.next());
+                        sn.nextLine();
                         break;
                     case 10:
                         exit = true;
