@@ -4,10 +4,7 @@ import data.*;
 import exceptions.NodeShutDownException;
 import exceptions.ProductNotFoundException;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.*;
@@ -25,11 +22,11 @@ public class Node {
 
     public Node(String storeName, String ip, int port) throws IOException {
         store = new Store(storeName);
-        products = new ArrayList<>();
-        transactions = new ArrayList<>();
+        readTransactionsFile();
+        readProductsFile();
         listeningSocket = new ServerSocket(port);
         networkIdentifier = new NetworkIdentifier(ip, port);
-        knownStores.put(storeName, networkIdentifier);
+        readKnownStoresFile();
     }
 
     private static void clear() {
@@ -73,6 +70,7 @@ public class Node {
             } else {
                 System.out.println(String.format("Registrando %s (%s)", storeBeingRegistered, storeNetworkId));
                 knownStores.put(storeBeingRegistered, storeNetworkId);
+                writeKnownStoresFile();
                 broadcast(Instructions.UPDATE_NODE_TABLE + "$" + serializeKnownNodes());
                 if (this.products.size() > 0)
                     sendMessage(storeNetworkId, Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
@@ -82,17 +80,20 @@ public class Node {
         } else if (instruction.equals(Instructions.UPDATE_NODE_TABLE)) {
             // Message format: update_nodes${serialized_list_of_nodes}
             deserializeNodeListAndUpdate(split[1]);
+            writeKnownStoresFile();
         } else if (instruction.equals(Instructions.REGISTER_PRODUCT)) {
             // Message format: register_product${[product_name]#{amount}}
             String productBeingRegistered = split[1];
             String[] splitProduct = productBeingRegistered.split("#");
             Product product = new Product(this.store.getName(), splitProduct[0], Integer.valueOf(splitProduct[1]));
             addProduct(product);
+            writeProductsFile();
             broadcast(Instructions.UPDATE_PRODUCTS+"$"+serializeProducts());
             // Let the process that sent the message know that it was successfully processed
             senderOutput.println(Alerts.PRODUCT_REGISTERED);
         } else if (instruction.equals(Instructions.UPDATE_PRODUCTS)) {
             deserializeProductsList(split[1]);
+            writeProductsFile();
         } else if (instruction.equals(Instructions.LIST_PRODUCTS_BY_COMPANY)) {
             StringBuilder builder = new StringBuilder();
             for (Map.Entry<String, Integer> entry : getAccumulatedCompanyProducts().entrySet()) {
@@ -115,6 +116,7 @@ public class Node {
                 Product product = searchProductByCode(productCode);
                 Transaction tx = product.buy(client, amountBought);
                 transactions.add(tx);
+                writeTransactionsFile();
                 senderOutput.println(client.getName() + " compro exitosamente " + amountBought + " " + productCode);
                 // TODO: Write to the backup text file [Rommel]
                 // Let the other stores know about your new amount of products
@@ -132,6 +134,7 @@ public class Node {
                 Product product = searchProductByCode(splitProduct[0]);
                 product.setAmount(Integer.valueOf(splitProduct[1]));
                 senderOutput.println("Se actualizo el producto: " + product.getCode() + " con " + product.getAmount());
+                writeProductsFile();
                 broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
             } catch (ProductNotFoundException e) {
                 senderOutput.println(Alerts.INVALID_PRODUCT_CODE);
@@ -195,6 +198,18 @@ public class Node {
             Product product = new Product(productComponents[0],productComponents[1],new Integer(productComponents[2]));
             System.out.println(String.format("Actualizado lista de productos | %s %s %s",productComponents[0],productComponents[1],productComponents[2]));
             this.products.add(product);
+        }
+        System.out.println("------------------------");
+    }
+
+    private void deserializeTransactionList(String serializedList) {
+        String[] splitTransactionList = serializedList.split(",");
+        this.transactions = new ArrayList<>();
+        for (String serializedTransaction : splitTransactionList) {
+            String[] transactionComponents = serializedTransaction.split("#");
+            Transaction transaction = new Transaction(transactionComponents[1], new Integer(transactionComponents[2]),
+                    new Client(transactionComponents[4], transactionComponents[3]));
+            this.transactions.add(transaction);
         }
         System.out.println("------------------------");
     }
@@ -277,6 +292,61 @@ public class Node {
             }
         }
         return resultBuilder.toString();
+    }
+
+    private void writeProductsFile() throws IOException {
+        FileWriter write = new FileWriter(this.store.getName() + "-products.txt", false);
+        PrintWriter print = new PrintWriter(write);
+        print.println(serializeProducts());
+        print.close();
+    }
+
+    private void writeTransactionsFile() throws IOException {
+        FileWriter write = new FileWriter(this.store.getName() + "-transactions.txt", false);
+        PrintWriter print = new PrintWriter(write);
+        print.println(serializeTransactions());
+        print.close();
+    }
+
+    private void writeKnownStoresFile() throws IOException {
+        FileWriter write = new FileWriter(this.store.getName() + "-knowStores.txt", false);
+        PrintWriter print = new PrintWriter(write);
+        print.println(serializeKnownNodes());
+        print.close();
+    }
+
+    private void readKnownStoresFile() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(this.store.getName() + "-knowStores.txt"));
+            String st = br.readLine();
+            deserializeNodeListAndUpdate(st);
+            br.close();
+        } catch (IOException e) {
+            knownStores.put(store.getName(), networkIdentifier);
+        }
+    }
+
+    private void readProductsFile() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(this.store.getName() + "-products.txt"));
+            String st = br.readLine();
+            System.out.println(st);
+            deserializeProductsList(st);
+            br.close();
+        } catch (IOException e) {
+            this.products = new ArrayList<>();
+        }
+    }
+
+    private void readTransactionsFile() {
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(store.getName() + "-transactions.txt"));
+            String transactions = br.readLine();
+            deserializeTransactionList(transactions);
+            br.close();
+        } catch (IOException e) {
+            this.transactions = new ArrayList<>();
+        }
     }
 
     /**

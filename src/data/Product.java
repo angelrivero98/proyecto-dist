@@ -1,7 +1,5 @@
 package data;
 
-import java.util.Date;
-
 public class Product {
 
     private String store;
@@ -59,6 +57,6 @@ public class Product {
 
         this.amount -= amount;
 
-        return new Transaction(new Date(), this.getCode(), amount, client);
+        return new Transaction(this.getCode(), amount, client);
     }
 }
