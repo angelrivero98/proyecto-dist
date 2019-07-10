@@ -57,6 +57,6 @@ public class Product {
 
         this.amount -= amount;
 
-        return new Transaction(this.getCode(), amount, client);
+        return new Transaction(getStore(), this.getCode(), amount, client);
     }
 }

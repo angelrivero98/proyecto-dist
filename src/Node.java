@@ -117,8 +117,8 @@ public class Node {
                 Transaction tx = product.buy(client, amountBought);
                 transactions.add(tx);
                 writeTransactionsFile();
+                writeProductsFile();
                 senderOutput.println(client.getName() + " compro exitosamente " + amountBought + " " + productCode);
-                // TODO: Write to the backup text file [Rommel]
                 // Let the other stores know about your new amount of products
                 broadcast(Instructions.UPDATE_PRODUCTS + "$" + serializeProducts());
             } catch (ProductNotFoundException e) {
@@ -207,8 +207,13 @@ public class Node {
         this.transactions = new ArrayList<>();
         for (String serializedTransaction : splitTransactionList) {
             String[] transactionComponents = serializedTransaction.split("#");
-            Transaction transaction = new Transaction(transactionComponents[1], new Integer(transactionComponents[2]),
-                    new Client(transactionComponents[4], transactionComponents[3]));
+            Transaction transaction = new Transaction(
+                    transactionComponents[0],
+                    transactionComponents[1],
+                    Integer.valueOf(transactionComponents[2]),
+                    new Client(transactionComponents[4],
+                            transactionComponents[3])
+            );
             this.transactions.add(transaction);
         }
         System.out.println("------------------------");
@@ -408,5 +413,20 @@ public class Node {
             );
         }
         System.out.println("-------------------------------------------------------");
+
+        System.out.println();
+        System.out.println("Transacciones");
+        System.out.println("-------------------------------------------------------------------------------------------");
+        System.out.println(String.format("| %15s | %15s | %15s | %15s | %15s |", "Tienda", "Codigo usuario", "Nombre usuario", "Codigo prod", "Cantidad"));
+        for (Transaction tx : transactions) {
+            System.out.println(String.format("| %15s | %15s | %15s | %15s | %15s |",
+                    tx.getStoreName(),
+                    tx.getClient().getCode(),
+                    tx.getClient().getName(),
+                    tx.getProductCode(),
+                    tx.getAmountBought())
+            );
+        }
+        System.out.println("-------------------------------------------------------------------------------------------");
     }
 }
