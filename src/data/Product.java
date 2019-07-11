@@ -51,12 +51,12 @@ public class Product {
      * @return data.Transaction object representing the order
      * @throws IllegalArgumentException If the desired amount if greater than the product quantity
      */
-    public Transaction buy(Client client, int amount) {
+    public Transaction buy(String atStore, Client client, int amount) {
         if (!canBeBought(amount))
             throw new IllegalArgumentException("Can't buy that many units");
 
         this.amount -= amount;
 
-        return new Transaction(getStore(), this.getCode(), amount, client);
+        return new Transaction(atStore, this.getCode(), amount, client);
     }
 }

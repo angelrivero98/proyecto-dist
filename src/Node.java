@@ -114,7 +114,7 @@ public class Node {
             Client client = new Client(split[4], split[3]);
             try {
                 Product product = searchProductByCode(productCode);
-                Transaction tx = product.buy(client, amountBought);
+                Transaction tx = product.buy(this.store.getName(), client, amountBought);
                 transactions.add(tx);
                 writeTransactionsFile();
                 writeProductsFile();
